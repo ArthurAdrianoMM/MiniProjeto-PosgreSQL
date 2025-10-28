@@ -9,13 +9,14 @@ const cors_1 = __importDefault(require("cors"));
 const logger_1 = require("./utils/logger");
 const logger_2 = require("./utils/logger");
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const habit_routes_1 = __importDefault(require("./routes/habit.routes"));
 const env_1 = require("./config/env");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // CORS configuration
 const corsOptions = {
     origin: env_1.env.CORS_ORIGIN,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 };
@@ -36,6 +37,7 @@ app.get('/health', (req, res) => {
 });
 // API routes
 app.use("/api", user_routes_1.default);
+app.use("/api/habits", habit_routes_1.default);
 // Test route
 app.get('/test', (req, res) => {
     res.json({
@@ -54,7 +56,14 @@ app.use((req, res) => {
             'GET /test',
             'POST /api/register',
             'POST /api/login',
-            'GET /api/protected'
+            'GET /api/protected',
+            'GET /api/profile',
+            'POST /api/habits - Criar hábito',
+            'GET /api/habits - Listar hábitos',
+            'GET /api/habits/:id - Buscar hábito',
+            'PUT /api/habits/:id - Atualizar hábito (completo)',
+            'PATCH /api/habits/:id - Atualizar hábito (parcial)',
+            'DELETE /api/habits/:id - Deletar hábito'
         ]
     });
 });

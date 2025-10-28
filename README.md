@@ -4,11 +4,23 @@ Uma API de autenticação completa desenvolvida com Node.js, TypeScript, Express
 
 ## 🚀 Funcionalidades
 
+### Autenticação
 - ✅ Registro de usuários
 - ✅ Login com JWT
 - ✅ Rotas protegidas
 - ✅ Hash de senhas com bcrypt
-- ✅ Validação de dados
+
+### Controle de Hábitos (CRUD Completo)
+- ✅ Criação de hábitos (POST)
+- ✅ Listagem de hábitos com filtros (GET)
+- ✅ Busca de hábito específico (GET by ID)
+- ✅ Atualização completa (PUT)
+- ✅ Atualização parcial (PATCH)
+- ✅ Exclusão de hábitos (DELETE)
+- ✅ Isolamento de dados por usuário
+- ✅ Validação completa de dados
+
+### Infraestrutura
 - ✅ Tratamento de erros robusto
 - ✅ Logs detalhados
 - ✅ Configuração de ambiente
@@ -141,22 +153,122 @@ Retorna informações do perfil do usuário autenticado.
 Authorization: Bearer <jwt_token>
 ```
 
+## 🎯 API de Controle de Hábitos
+
+### Rotas CRUD para Hábitos
+
+Todas as rotas abaixo requerem autenticação JWT no header `Authorization: Bearer <token>`.
+
+#### POST /api/habits
+Cria um novo hábito para o usuário autenticado.
+
+**Body:**
+```json
+{
+  "name": "Academia",
+  "description": "Treino de musculação 3x por semana",
+  "frequency": "Semanal"
+}
+```
+
+**Resposta (201):**
+```json
+{
+  "id": "habit_id",
+  "name": "Academia",
+  "description": "Treino de musculação 3x por semana",
+  "frequency": "Semanal",
+  "isActive": true,
+  "message": "Hábito criado com sucesso"
+}
+```
+
+#### GET /api/habits
+Lista todos os hábitos do usuário autenticado, com suporte a filtros opcionais.
+
+**Query Parameters:**
+- `isActive` - Filtrar por status (true/false)
+- `frequency` - Filtrar por frequência
+- `name` - Buscar por nome (busca parcial)
+
+**Exemplos:**
+- `GET /api/habits`
+- `GET /api/habits?isActive=true`
+- `GET /api/habits?frequency=Semanal`
+
+#### GET /api/habits/:id
+Retorna detalhes de um hábito específico.
+
+#### PUT /api/habits/:id
+Atualiza todos os campos de um hábito.
+
+**Body:**
+```json
+{
+  "name": "Academia - Atualizado",
+  "description": "Descrição atualizada",
+  "frequency": "Semanal",
+  "isActive": true
+}
+```
+
+#### PATCH /api/habits/:id
+Atualiza parcialmente um hábito (apenas os campos enviados).
+
+**Body:**
+```json
+{
+  "description": "Nova descrição",
+  "isActive": false
+}
+```
+
+#### DELETE /api/habits/:id
+Remove um hábito.
+
+📖 **Documentação completa:** Veja [HABITS_API.md](./HABITS_API.md) para mais detalhes sobre a API de hábitos.
+
 ## 🧪 Testes
 
+### Testes de Autenticação
 Use os scripts de teste fornecidos na pasta `request/`:
 
 ```bash
 # Teste de registro
-chmod +x request/register_success.sh
 ./request/register_success.sh
 
 # Teste de login
-chmod +x request/login_sucess.sh
 ./request/login_sucess.sh
 
 # Teste de rota protegida
-chmod +x request/protected_valid.sh
 ./request/protected_valid.sh
+```
+
+### Testes de Hábitos
+```bash
+# Criar múltiplos hábitos de exemplo
+./request/create_multiple_habits.sh
+
+# Criar um hábito
+./request/create_habit.sh
+
+# Listar todos os hábitos
+./request/list_habits.sh
+
+# Listar hábitos com filtros
+./request/list_habits_filtered.sh
+
+# Buscar hábito específico
+./request/get_habit.sh
+
+# Atualizar hábito (PUT)
+./request/update_habit.sh
+
+# Atualizar hábito (PATCH)
+./request/patch_habit.sh
+
+# Deletar hábito
+./request/delete_habit.sh
 ```
 
 ## 📁 Estrutura do Projeto
@@ -207,9 +319,9 @@ docker-compose up
 ## 🚨 Códigos de Erro
 
 - `400` - Dados inválidos
-- `401` - Não autorizado
-- `403` - Token inválido
-- `404` - Rota não encontrada
+- `401` - Não autorizado (token ausente ou inválido)
+- `403` - Acesso proibido (tentativa de acessar recurso de outro usuário)
+- `404` - Rota não encontrada ou recurso não existe
 - `409` - Email já cadastrado
 - `500` - Erro interno do servidor
 

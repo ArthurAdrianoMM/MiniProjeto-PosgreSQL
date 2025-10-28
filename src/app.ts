@@ -4,6 +4,7 @@ import cors from "cors";
 import { logger } from "./utils/logger";
 import { logError } from "./utils/logger";
 import userRoutes from "./routes/user.routes";
+import habitRoutes from "./routes/habit.routes";
 import { env } from "./config/env";
 
 dotenv.config();
@@ -13,7 +14,7 @@ const app = express();
 // CORS configuration
 const corsOptions = {
   origin: env.CORS_ORIGIN,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
@@ -39,6 +40,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use("/api", userRoutes);
+app.use("/api/habits", habitRoutes);
 
 // Test route
 app.get('/test', (req, res) => {
@@ -59,7 +61,14 @@ app.use((req, res) => {
       'GET /test',
       'POST /api/register',
       'POST /api/login',
-      'GET /api/protected'
+      'GET /api/protected',
+      'GET /api/profile',
+      'POST /api/habits - Criar hábito',
+      'GET /api/habits - Listar hábitos',
+      'GET /api/habits/:id - Buscar hábito',
+      'PUT /api/habits/:id - Atualizar hábito (completo)',
+      'PATCH /api/habits/:id - Atualizar hábito (parcial)',
+      'DELETE /api/habits/:id - Deletar hábito'
     ]
   });
 });

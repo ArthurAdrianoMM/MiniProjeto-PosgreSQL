@@ -6,8 +6,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - PORT=${PORT}
-      - MONGO_URI=${MONGO_URI}
+      - PORT=${PORT:-3000}
+      - MONGO_URI=mongodb://mongo:27017
+      - DB_NAME=userauth
       - JWT_SECRET=${JWT_SECRET}
     volumes:
       - .:/app:z

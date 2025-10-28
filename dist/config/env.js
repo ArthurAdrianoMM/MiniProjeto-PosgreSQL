@@ -25,9 +25,18 @@ const validateEnv = () => {
 };
 // Validate environment variables
 validateEnv();
+// Detect if running in Docker
+const isDocker = process.env.DOCKER_ENV === 'true' || process.env.MONGO_URI?.includes('mongo:27017');
+// Use appropriate MongoDB host based on environment
+const getDefaultMongoUri = () => {
+    if (isDocker) {
+        return 'mongodb://mongo:27017/userauth';
+    }
+    return 'mongodb://localhost:27017/userauth';
+};
 exports.env = {
     PORT: parseInt(process.env.PORT || '3000', 10),
-    MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/userauth',
+    MONGO_URI: process.env.MONGO_URI || getDefaultMongoUri(),
     JWT_SECRET: process.env.JWT_SECRET,
     NODE_ENV: process.env.NODE_ENV || 'development',
     // Additional configuration
