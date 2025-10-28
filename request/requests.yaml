@@ -1,0 +1,470 @@
+openapi: 3.0.0
+info:
+  title: FullstackParte1 - Requests para Insomnia
+  version: 1.0.0
+  description: |
+    Coleção OpenAPI com exemplos de requisições para o projeto FullstackParte1.
+    Inclui exemplos de sucesso (criar, listar, editar, apagar) e casos de erro
+    (sem token, token inválido, acesso indevido, requisição mal formatada).
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    NewUser:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: Teste Usuario
+        email:
+          type: string
+          format: email
+          example: teste@exemplo.com
+        password:
+          type: string
+          format: password
+          example: strongP@ssw0rd
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: teste@exemplo.com
+        password:
+          type: string
+          format: password
+          example: strongP@ssw0rd
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVmY...sample
+    NewHabit:
+      type: object
+      required:
+        - name
+        - frequency
+      properties:
+        name:
+          type: string
+          example: Ler 30 minutos
+        description:
+          type: string
+          example: Ler capítulos de um livro à noite
+        frequency:
+          type: string
+          enum: [Diário, Semanal, Quinzenal, Mensal]
+          example: Diário
+        isActive:
+          type: boolean
+          example: true
+    Habit:
+      allOf:
+        - $ref: '#/components/schemas/NewHabit'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: 654a1b2c3d4e5f6a7b8c9d0e
+            userId:
+              type: string
+              example: 5f8f8c44b54764421b7156c1
+            createdAt:
+              type: string
+              format: date-time
+              example: '2025-10-27T12:00:00.000Z'
+            updatedAt:
+              type: string
+              format: date-time
+              example: '2025-10-27T12:00:00.000Z'
+    HabitsListResponse:
+      type: object
+      properties:
+        habits:
+          type: array
+          items:
+            $ref: '#/components/schemas/Habit'
+        count:
+          type: integer
+          example: 1
+        message:
+          type: string
+          example: Hábitos listados com sucesso
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+paths:
+  /api/register:
+    post:
+      summary: Registrar usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+            examples:
+              valid:
+                value:
+                  name: Teste Usuario
+                  email: teste@exemplo.com
+                  password: strongP@ssw0rd
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              example:
+                id: 5f8f8c44b54764421b7156c1
+                name: Teste Usuario
+                email: teste@exemplo.com
+        '400':
+          description: Requisição mal formatada / validação
+          content:
+            application/json:
+              examples:
+                bad_format:
+                  value:
+                    error: ValidationError
+                    message: Nome do hábito é obrigatório
+  /api/login:
+    post:
+      summary: Autenticar usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                value:
+                  email: teste@exemplo.com
+                  password: strongP@ssw0rd
+      responses:
+        '200':
+          description: Login bem-sucedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              examples:
+                success:
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.exampleToken
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              example:
+                error: Credenciais inválidas
+  /api/habits:
+    post:
+      summary: Criar hábito (protegido)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewHabit'
+            examples:
+              valid:
+                value:
+                  name: Caminhar 20 minutos
+                  description: Caminhada matinal no quarteirão
+                  frequency: Diário
+                  isActive: true
+              bad_format:
+                value:
+                  name: C
+                  frequency: Unknown
+      responses:
+        '201':
+          description: Hábito criado
+          content:
+            application/json:
+              example:
+                _id: 654a1b2c3d4e5f6a7b8c9d0e
+                name: Caminhar 20 minutos
+                description: Caminhada matinal no quarteirão
+                frequency: Diário
+                isActive: true
+                userId: 5f8f8c44b54764421b7156c1
+                createdAt: '2025-10-27T12:00:00.000Z'
+                updatedAt: '2025-10-27T12:00:00.000Z'
+        '400':
+          description: Requisição mal formatada / validação
+          content:
+            application/json:
+              examples:
+                validation_error:
+                  value:
+                    error: ValidationError
+                    message: Nome do hábito é obrigatório
+        '401':
+          description: Sem token de autenticação
+          content:
+            application/json:
+              example:
+                error: Token de acesso não fornecido
+                message: É necessário fornecer um token JWT no header Authorization
+        '403':
+          description: Token inválido
+          content:
+            application/json:
+              example:
+                error: Token inválido
+                message: O token JWT fornecido é inválido.
+    get:
+      summary: Listar hábitos do usuário autenticado
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+        - in: query
+          name: frequency
+          schema:
+            type: string
+        - in: query
+          name: name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de hábitos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitsListResponse'
+              examples:
+                success:
+                  value:
+                    habits:
+                      - _id: 654a1b2c3d4e5f6a7b8c9d0e
+                        name: Caminhar 20 minutos
+                        description: Caminhada matinal no quarteirão
+                        frequency: Diário
+                        isActive: true
+                        userId: 5f8f8c44b54764421b7156c1
+                        createdAt: '2025-10-27T12:00:00.000Z'
+                        updatedAt: '2025-10-27T12:00:00.000Z'
+                    count: 1
+                    message: Hábitos listados com sucesso
+        '401':
+          description: Sem token
+          content:
+            application/json:
+              example:
+                error: Token de acesso não fornecido
+                message: É necessário fornecer um token JWT no header Authorization
+        '403':
+          description: Token inválido
+          content:
+            application/json:
+              example:
+                error: Token inválido
+                message: O token JWT fornecido é inválido.
+  /api/habits/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Buscar hábito por id (protegido)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Hábito retornado
+          content:
+            application/json:
+              example:
+                _id: 654a1b2c3d4e5f6a7b8c9d0e
+                name: Caminhar 20 minutos
+                description: Caminhada matinal no quarteirão
+                frequency: Diário
+                isActive: true
+                userId: 5f8f8c44b54764421b7156c1
+                createdAt: '2025-10-27T12:00:00.000Z'
+                updatedAt: '2025-10-27T12:00:00.000Z'
+        '401':
+          description: Sem token
+          content:
+            application/json:
+              example:
+                error: Token de acesso não fornecido
+                message: É necessário fornecer um token JWT no header Authorization
+        '403':
+          description: Acesso indevido a dados de outro usuário (simulado)
+          content:
+            application/json:
+              example:
+                error: ForbiddenAccessError
+                message: Você não tem permissão para acessar este recurso
+        '404':
+          description: Hábito não encontrado
+          content:
+            application/json:
+              example:
+                error: HabitNotFoundError
+                message: Hábito não encontrado
+    put:
+      summary: Atualizar hábito (completo)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewHabit'
+            examples:
+              valid:
+                value:
+                  name: Caminhar 30 minutos
+                  description: Atualizado para 30 minutos
+                  frequency: Diário
+                  isActive: true
+              bad_format:
+                value:
+                  name: XX
+                  frequency: Invalid
+      responses:
+        '200':
+          description: Hábito atualizado com sucesso
+          content:
+            application/json:
+              example:
+                _id: 654a1b2c3d4e5f6a7b8c9d0e
+                name: Caminhar 30 minutos
+                description: Atualizado para 30 minutos
+                frequency: Diário
+                isActive: true
+                userId: 5f8f8c44b54764421b7156c1
+                createdAt: '2025-10-27T12:00:00.000Z'
+                updatedAt: '2025-10-27T13:00:00.000Z'
+        '400':
+          description: Validação
+          content:
+            application/json:
+              example:
+                error: ValidationError
+                message: Nome do hábito é obrigatório
+        '403':
+          description: Acesso indevido (simulado)
+          content:
+            application/json:
+              example:
+                error: ForbiddenAccessError
+                message: Você não tem permissão para atualizar este hábito
+    patch:
+      summary: Atualizar hábito (parcial)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                frequency:
+                  type: string
+                isActive:
+                  type: boolean
+            examples:
+              valid_partial:
+                value:
+                  isActive: false
+      responses:
+        '200':
+          description: Hábito parcialmente atualizado
+          content:
+            application/json:
+              example:
+                _id: 654a1b2c3d4e5f6a7b8c9d0e
+                name: Caminhar 20 minutos
+                description: Caminhada matinal no quarteirão
+                frequency: Diário
+                isActive: false
+                userId: 5f8f8c44b54764421b7156c1
+                createdAt: '2025-10-27T12:00:00.000Z'
+                updatedAt: '2025-10-27T13:10:00.000Z'
+        '400':
+          description: Validação
+          content:
+            application/json:
+              example:
+                error: ValidationError
+                message: Nome do hábito é obrigatório
+        '403':
+          description: Acesso indevido (simulado)
+          content:
+            application/json:
+              example:
+                error: ForbiddenAccessError
+                message: Você não tem permissão para atualizar este hábito
+    delete:
+      summary: Deletar hábito
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Hábito deletado com sucesso
+          content:
+            application/json:
+              example:
+                message: Hábito deletado com sucesso
+        '401':
+          description: Sem token
+          content:
+            application/json:
+              example:
+                error: Token de acesso não fornecido
+                message: É necessário fornecer um token JWT no header Authorization
+        '403':
+          description: Acesso indevido (simulado)
+          content:
+            application/json:
+              example:
+                error: ForbiddenAccessError
+                message: Você não tem permissão para deletar este hábito
+        '404':
+          description: Hábito não encontrado
+          content:
+            application/json:
+              example:
+                error: HabitNotFoundError
+                message: Hábito não encontrado
+security:
+  - bearerAuth: []
