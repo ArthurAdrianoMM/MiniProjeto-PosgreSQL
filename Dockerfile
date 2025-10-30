@@ -4,11 +4,15 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN apk add --no-cache openssl libc6-compat \
+    && npm install
 
 COPY . .
 
-RUN npm run build
+# Generate Prisma client (if schema exists) and build
+RUN rm -rf dist \
+    && npx prisma generate || true \
+    && npm run build
 
 EXPOSE 3000
 

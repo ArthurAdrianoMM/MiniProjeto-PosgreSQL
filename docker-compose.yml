@@ -7,19 +7,29 @@ services:
       - "3000:3000"
     environment:
       - PORT=${PORT:-3000}
-      - MONGO_URI=mongodb://mongo:27017
-      - DB_NAME=userauth
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
       - JWT_SECRET=${JWT_SECRET}
     volumes:
-      - .:/app:z
       - /app/node_modules
     depends_on:
-      - mongo
+      postgres:
+        condition: service_healthy
 
-  mongo:
-    image: mongo:6
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
     volumes:
-      - mongo_data:/data/db:z
+      - pg_data:/var/lib/postgresql/data:z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
-  mongo_data:
+  pg_data:

@@ -1,4 +1,4 @@
-import Habit from "../models/habit.model";
+import { prisma } from "../database/connection";
 import { logInfo, logError } from "../utils/logger";
 
 // Custom error classes
@@ -48,18 +48,23 @@ export const createHabit = async (userId: string, data: {
     }
 
     // Create habit
-    const habit = await Habit.create({
-      ...data,
-      userId
+    const habit = await prisma.habit.create({
+      data: {
+        name: data.name,
+        description: data.description ?? "",
+        frequency: mapFrequency(data.frequency ?? "Diário"),
+        isActive: data.isActive ?? true,
+        userId
+      }
     });
 
-    logInfo("Habit created successfully", { habitId: habit._id });
+    logInfo("Habit created successfully", { habitId: habit.id });
 
     return {
-      id: habit._id,
+      id: habit.id,
       name: habit.name,
       description: habit.description,
-      frequency: habit.frequency,
+      frequency: unmapFrequency(habit.frequency),
       isActive: habit.isActive,
       userId: habit.userId,
       createdAt: habit.createdAt,
@@ -73,10 +78,6 @@ export const createHabit = async (userId: string, data: {
       throw error;
     }
     
-    if (error.name === "MongooseError" && error.message) {
-      throw new ValidationError(error.message);
-    }
-    
     throw new Error("Erro ao criar hábito");
   }
 };
@@ -88,31 +89,23 @@ export const getHabits = async (userId: string, filters?: any) => {
   try {
     logInfo("Fetching habits", { userId, filters });
 
-    // Build query
-    const query: any = { userId };
-
-    // Apply filters if provided
+    // Build Prisma where
+    const where: any = { userId };
     if (filters) {
-      if (filters.isActive !== undefined) {
-        query.isActive = filters.isActive === 'true';
-      }
-      if (filters.frequency) {
-        query.frequency = filters.frequency;
-      }
-      if (filters.name) {
-        query.name = { $regex: filters.name, $options: 'i' };
-      }
+      if (filters.isActive !== undefined) where.isActive = filters.isActive === 'true';
+      if (filters.frequency) where.frequency = mapFrequency(filters.frequency);
+      if (filters.name) where.name = { contains: String(filters.name), mode: 'insensitive' };
     }
 
-    const habits = await Habit.find(query).sort({ createdAt: -1 });
+    const habits = await prisma.habit.findMany({ where, orderBy: { createdAt: 'desc' } });
 
     logInfo("Habits fetched successfully", { count: habits.length });
 
     return habits.map(habit => ({
-      id: habit._id,
+      id: habit.id,
       name: habit.name,
       description: habit.description,
-      frequency: habit.frequency,
+      frequency: unmapFrequency(habit.frequency),
       isActive: habit.isActive,
       userId: habit.userId,
       createdAt: habit.createdAt,
@@ -131,7 +124,7 @@ export const getHabitById = async (userId: string, habitId: string) => {
   try {
     logInfo("Fetching habit by ID", { userId, habitId });
 
-    const habit = await Habit.findById(habitId);
+    const habit = await prisma.habit.findUnique({ where: { id: habitId } });
 
     if (!habit) {
       logError("Habit not found", { habitId });
@@ -139,7 +132,7 @@ export const getHabitById = async (userId: string, habitId: string) => {
     }
 
     // Check if habit belongs to user
-    if (habit.userId.toString() !== userId) {
+    if (habit.userId !== userId) {
       logError("Unauthorized access to habit", { userId, habitId, habitUserId: habit.userId });
       throw new ForbiddenAccessError();
     }
@@ -147,10 +140,10 @@ export const getHabitById = async (userId: string, habitId: string) => {
     logInfo("Habit fetched successfully");
 
     return {
-      id: habit._id,
+      id: habit.id,
       name: habit.name,
       description: habit.description,
-      frequency: habit.frequency,
+      frequency: unmapFrequency(habit.frequency),
       isActive: habit.isActive,
       userId: habit.userId,
       createdAt: habit.createdAt,
@@ -182,7 +175,7 @@ export const updateHabit = async (userId: string, habitId: string, data: {
       throw new ValidationError("Nome deve ter pelo menos 2 caracteres");
     }
 
-    const habit = await Habit.findById(habitId);
+    const habit = await prisma.habit.findUnique({ where: { id: habitId } });
 
     if (!habit) {
       logError("Habit not found", { habitId });
@@ -190,30 +183,32 @@ export const updateHabit = async (userId: string, habitId: string, data: {
     }
 
     // Check if habit belongs to user
-    if (habit.userId.toString() !== userId) {
+    if (habit.userId !== userId) {
       logError("Unauthorized access to habit (PUT)", { userId, habitId, habitUserId: habit.userId });
       throw new ForbiddenAccessError();
     }
 
-    // Update all fields
-    habit.name = data.name;
-    habit.description = data.description !== undefined ? data.description : habit.description;
-    habit.frequency = data.frequency !== undefined ? data.frequency : habit.frequency;
-    habit.isActive = data.isActive !== undefined ? data.isActive : habit.isActive;
-
-    await habit.save();
+    const updated = await prisma.habit.update({
+      where: { id: habitId },
+      data: {
+        name: data.name,
+        description: data.description !== undefined ? data.description : habit.description,
+        frequency: data.frequency !== undefined ? mapFrequency(data.frequency) : habit.frequency,
+        isActive: data.isActive !== undefined ? data.isActive : habit.isActive,
+      }
+    });
 
     logInfo("Habit updated successfully (PUT)");
 
     return {
-      id: habit._id,
-      name: habit.name,
-      description: habit.description,
-      frequency: habit.frequency,
-      isActive: habit.isActive,
-      userId: habit.userId,
-      createdAt: habit.createdAt,
-      updatedAt: habit.updatedAt,
+      id: updated.id,
+      name: updated.name,
+      description: updated.description,
+      frequency: unmapFrequency(updated.frequency),
+      isActive: updated.isActive,
+      userId: updated.userId,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
       message: "Hábito atualizado com sucesso"
     };
   } catch (error: any) {
@@ -242,7 +237,7 @@ export const patchHabit = async (userId: string, habitId: string, data: {
       throw new ValidationError("Nome deve ter pelo menos 2 caracteres");
     }
 
-    const habit = await Habit.findById(habitId);
+    const habit = await prisma.habit.findUnique({ where: { id: habitId } });
 
     if (!habit) {
       logError("Habit not found", { habitId });
@@ -250,30 +245,32 @@ export const patchHabit = async (userId: string, habitId: string, data: {
     }
 
     // Check if habit belongs to user
-    if (habit.userId.toString() !== userId) {
+    if (habit.userId !== userId) {
       logError("Unauthorized access to habit (PATCH)", { userId, habitId, habitUserId: habit.userId });
       throw new ForbiddenAccessError();
     }
 
-    // Update only provided fields
-    if (data.name !== undefined) habit.name = data.name;
-    if (data.description !== undefined) habit.description = data.description;
-    if (data.frequency !== undefined) habit.frequency = data.frequency;
-    if (data.isActive !== undefined) habit.isActive = data.isActive;
-
-    await habit.save();
+    const updated = await prisma.habit.update({
+      where: { id: habitId },
+      data: {
+        name: data.name !== undefined ? data.name : undefined,
+        description: data.description !== undefined ? data.description : undefined,
+        frequency: data.frequency !== undefined ? mapFrequency(data.frequency) : undefined,
+        isActive: data.isActive !== undefined ? data.isActive : undefined,
+      }
+    });
 
     logInfo("Habit updated successfully (PATCH)");
 
     return {
-      id: habit._id,
-      name: habit.name,
-      description: habit.description,
-      frequency: habit.frequency,
-      isActive: habit.isActive,
-      userId: habit.userId,
-      createdAt: habit.createdAt,
-      updatedAt: habit.updatedAt,
+      id: updated.id,
+      name: updated.name,
+      description: updated.description,
+      frequency: unmapFrequency(updated.frequency),
+      isActive: updated.isActive,
+      userId: updated.userId,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
       message: "Hábito atualizado com sucesso"
     };
   } catch (error: any) {
@@ -292,7 +289,7 @@ export const deleteHabit = async (userId: string, habitId: string) => {
   try {
     logInfo("Deleting habit", { userId, habitId });
 
-    const habit = await Habit.findById(habitId);
+    const habit = await prisma.habit.findUnique({ where: { id: habitId } });
 
     if (!habit) {
       logError("Habit not found", { habitId });
@@ -300,18 +297,18 @@ export const deleteHabit = async (userId: string, habitId: string) => {
     }
 
     // Check if habit belongs to user
-    if (habit.userId.toString() !== userId) {
+    if (habit.userId !== userId) {
       logError("Unauthorized access to habit (DELETE)", { userId, habitId, habitUserId: habit.userId });
       throw new ForbiddenAccessError();
     }
 
-    await Habit.findByIdAndDelete(habitId);
+    await prisma.habit.delete({ where: { id: habitId } });
 
     logInfo("Habit deleted successfully");
 
     return {
       message: "Hábito deletado com sucesso",
-      id: habit._id
+      id: habit.id
     };
   } catch (error: any) {
     if (error.name === "HabitNotFoundError" || error.name === "ForbiddenAccessError") {
@@ -321,4 +318,24 @@ export const deleteHabit = async (userId: string, habitId: string) => {
     throw new Error("Erro ao deletar hábito");
   }
 };
+
+// Helpers to map frequency between API strings and Prisma enum
+function mapFrequency(value: "Diário" | "Semanal" | "Quinzenal" | "Mensal"): any {
+  switch (value) {
+    case "Diário":
+      return "Diário" as any;
+    case "Semanal":
+      return "Semanal" as any;
+    case "Quinzenal":
+      return "Quinzenal" as any;
+    case "Mensal":
+      return "Mensal" as any;
+    default:
+      return "Diário" as any;
+  }
+}
+
+function unmapFrequency(value: any): "Diário" | "Semanal" | "Quinzenal" | "Mensal" {
+  return value as any;
+}
 

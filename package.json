@@ -4,15 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prebuild": "rimraf dist",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "vercel-build": "npm run build"
+    "start": "npx prisma db push && node dist/server.js",
+    "vercel-build": "npm run build",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
