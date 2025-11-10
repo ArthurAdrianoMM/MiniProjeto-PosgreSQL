@@ -323,19 +323,30 @@ export const deleteHabit = async (userId: string, habitId: string) => {
 function mapFrequency(value: "Diário" | "Semanal" | "Quinzenal" | "Mensal"): any {
   switch (value) {
     case "Diário":
-      return "Diário" as any;
+      return "DIARIO" as any;
     case "Semanal":
-      return "Semanal" as any;
+      return "SEMANAL" as any;
     case "Quinzenal":
-      return "Quinzenal" as any;
+      return "QUINZENAL" as any;
     case "Mensal":
-      return "Mensal" as any;
+      return "MENSAL" as any;
     default:
-      return "Diário" as any;
+      return "DIARIO" as any;
   }
 }
 
 function unmapFrequency(value: any): "Diário" | "Semanal" | "Quinzenal" | "Mensal" {
-  return value as any;
+  switch (value) {
+    case "DIARIO":
+      return "Diário";
+    case "SEMANAL":
+      return "Semanal";
+    case "QUINZENAL":
+      return "Quinzenal";
+    case "MENSAL":
+      return "Mensal";
+    default:
+      return "Diário";
+  }
 }
 

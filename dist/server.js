@@ -8,7 +8,7 @@ const connection_1 = require("./database/connection");
 const env_1 = require("./config/env");
 const startServer = async () => {
     try {
-        // Connect to MongoDB
+        // Connect to PostgreSQL
         await (0, connection_1.connectDB)();
         // Start the server
         app_1.default.listen(env_1.env.PORT, () => {
