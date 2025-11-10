@@ -4,7 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginUser = exports.registerUser = exports.ValidationError = exports.EmailAlreadyExistsError = exports.InvalidPasswordError = exports.UserNotFoundError = void 0;
-const user_model_1 = __importDefault(require("../models/user.model"));
+const connection_1 = require("../database/connection");
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 // Custom error classes for better error handling
@@ -49,14 +50,18 @@ const registerUser = async (name, email, password) => {
             throw new ValidationError("Senha deve ter pelo menos 6 caracteres");
         }
         // Check if email already exists
-        const existing = await user_model_1.default.findOne({ email });
+        const existing = await connection_1.prisma.user.findUnique({ where: { email } });
         if (existing) {
             throw new EmailAlreadyExistsError();
         }
-        // Create new user
-        const user = await user_model_1.default.create({ name, email, password });
+        // Hash password and create new user
+        const saltRounds = env_1.env.BCRYPT_ROUNDS;
+        const hashed = await bcrypt_1.default.hash(password, saltRounds);
+        const user = await connection_1.prisma.user.create({
+            data: { name, email, password: hashed }
+        });
         return {
-            id: user._id,
+            id: user.id,
             name: user.name,
             email: user.email,
             createdAt: user.createdAt,
@@ -66,11 +71,6 @@ const registerUser = async (name, email, password) => {
     catch (error) {
         if (error.name === "ValidationError" || error.name === "EmailAlreadyExistsError") {
             throw error;
-        }
-        // Handle Mongoose validation errors
-        if (error.name === "ValidationError" && error.errors) {
-            const firstError = Object.values(error.errors)[0];
-            throw new ValidationError(firstError.message);
         }
         throw new Error("Erro interno do servidor ao criar usuário");
     }
@@ -82,22 +82,22 @@ const loginUser = async (email, password) => {
         if (!email || !password) {
             throw new ValidationError("Email e senha são obrigatórios");
         }
-        // Find user with password using the static method
-        const user = await user_model_1.default.findByEmailWithPassword(email);
+        // Find user by email
+        const user = await connection_1.prisma.user.findUnique({ where: { email } });
         if (!user) {
             throw new UserNotFoundError();
         }
-        // Compare password using the instance method
-        const match = await user.comparePassword(password);
+        // Compare password
+        const match = await bcrypt_1.default.compare(password, user.password);
         if (!match) {
             throw new InvalidPasswordError();
         }
         // Generate JWT token
-        const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email }, env_1.env.JWT_SECRET, { expiresIn: "1h" });
+        const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email }, env_1.env.JWT_SECRET, { expiresIn: "1h" });
         return {
             token,
             user: {
-                id: user._id,
+                id: user.id,
                 name: user.name,
                 email: user.email,
                 createdAt: user.createdAt

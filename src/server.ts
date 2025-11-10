@@ -4,7 +4,7 @@ import { env } from "./config/env";
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB
+    // Connect to PostgreSQL
     await connectDB();
     
     // Start the server

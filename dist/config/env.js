@@ -8,7 +8,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 // Validate required environment variables
 const validateEnv = () => {
-    const requiredVars = ['JWT_SECRET'];
+    const requiredVars = ['JWT_SECRET', 'DATABASE_URL'];
     const missingVars = [];
     requiredVars.forEach(varName => {
         if (!process.env[varName]) {
@@ -25,25 +25,16 @@ const validateEnv = () => {
 };
 // Validate environment variables
 validateEnv();
-// Detect if running in Docker
-const isDocker = process.env.DOCKER_ENV === 'true' || process.env.MONGO_URI?.includes('mongo:27017');
-// Use appropriate MongoDB host based on environment
-const getDefaultMongoUri = () => {
-    if (isDocker) {
-        return 'mongodb://mongo:27017/userauth';
-    }
-    return 'mongodb://localhost:27017/userauth';
-};
 exports.env = {
     PORT: parseInt(process.env.PORT || '3000', 10),
-    MONGO_URI: process.env.MONGO_URI || getDefaultMongoUri(),
+    DATABASE_URL: process.env.DATABASE_URL,
     JWT_SECRET: process.env.JWT_SECRET,
     NODE_ENV: process.env.NODE_ENV || 'development',
     // Additional configuration
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1h',
     BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
-    // Database configuration
-    DB_NAME: process.env.DB_NAME || 'userauth',
+    // Database configuration (PostgreSQL)
+    DB_NAME: process.env.DB_NAME || 'postgres',
     // CORS configuration
     CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
     // Logging configuration
