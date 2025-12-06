@@ -5,10 +5,11 @@
   "main": "index.js",
   "scripts": {
     "prebuild": "rimraf dist",
+    "postinstall": "prisma generate",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "npx prisma db push && node dist/server.js",
-    "vercel-build": "npx prisma generate",
+    "vercel-build": "prisma generate",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate deploy"
   },
@@ -16,16 +17,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "prisma": "^6.19.0"
   },
   "devDependencies": {
-    "@prisma/client": "^6.19.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
@@ -33,7 +35,6 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^24.7.2",
     "pg": "^8.16.3",
-    "prisma": "^6.19.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }
