@@ -72,6 +72,13 @@ export const registerUser = async (name: string, email: string, password: string
       throw error;
     }
     
+    // Provide more helpful error messages for database connection issues
+    if (error.message?.includes("Can't reach database server")) {
+      console.error("Database connection error:", error.message);
+      throw new Error("Erro de conexão com o banco de dados. Verifique a configuração do DATABASE_URL.");
+    }
+    
+    console.error("Registration error:", error);
     throw new Error("Erro interno do servidor ao criar usuário");
   }
 };
@@ -116,6 +123,14 @@ export const loginUser = async (email: string, password: string) => {
     if (error.name === "ValidationError" || error.name === "UserNotFoundError" || error.name === "InvalidPasswordError") {
       throw error;
     }
+    
+    // Provide more helpful error messages for database connection issues
+    if (error.message?.includes("Can't reach database server")) {
+      console.error("Database connection error:", error.message);
+      throw new Error("Erro de conexão com o banco de dados. Verifique a configuração do DATABASE_URL.");
+    }
+    
+    console.error("Login error:", error);
     throw new Error("Erro interno do servidor ao fazer login");
   }
 };
